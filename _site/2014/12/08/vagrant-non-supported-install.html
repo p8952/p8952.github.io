@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Installing Vagrant in non-supported environments | p8952</title>
+<meta name="generator" content="Jekyll v4.2.0" />
+<meta property="og:title" content="Installing Vagrant in non-supported environments" />
+<meta name="author" content="Peter Wilmott" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Get sources: $ git clone git@github.com:mitchellh/vagrant.git $ cd vagrant $ git checkout tags/v1.6.5" />
+<meta property="og:description" content="Get sources: $ git clone git@github.com:mitchellh/vagrant.git $ cd vagrant $ git checkout tags/v1.6.5" />
+<meta property="og:site_name" content="p8952" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2014-12-08T00:00:00-06:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Installing Vagrant in non-supported environments" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"Peter Wilmott"},"@type":"BlogPosting","description":"Get sources: $ git clone git@github.com:mitchellh/vagrant.git $ cd vagrant $ git checkout tags/v1.6.5","headline":"Installing Vagrant in non-supported environments","datePublished":"2014-12-08T00:00:00-06:00","dateModified":"2014-12-08T00:00:00-06:00","mainEntityOfPage":{"@type":"WebPage","@id":"/2014/12/08/vagrant-non-supported-install.html"},"url":"/2014/12/08/vagrant-non-supported-install.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="p8952" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">p8952</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/">Home</a><a class="page-link" href="/code.html">Code</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Installing Vagrant in non-supported environments</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2014-12-08T00:00:00-06:00" itemprop="datePublished">Dec 8, 2014
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>Get sources:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ git clone git@github.com:mitchellh/vagrant.git
+$ cd vagrant
+$ git checkout tags/v1.6.5
+</code></pre></div></div>
+
+<p>Install dependencies:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ gem install bundler -v '&lt; 1.7.0'
+$ bundle install
+</code></pre></div></div>
+
+<p>Patch Vagrant<sup id="fnref:1" role="doc-noteref"><a href="#fn:1" class="footnote">1</a></sup><sup id="fnref:2" role="doc-noteref"><a href="#fn:2" class="footnote">2</a></sup><sup id="fnref:3" role="doc-noteref"><a href="#fn:3" class="footnote">3</a></sup>:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>diff --git a/bin/vagrant b/bin/vagrant
+index 21630e1..5e24279 100755
+--- a/bin/vagrant
++++ b/bin/vagrant
+@@ -66,6 +66,8 @@ end
+
+ # Setup our dependencies by initializing Bundler. If we're using plugins,
+ # then also initialize the paths to the plugins.
++load_path = []
++$LOAD_PATH.each { |path| load_path &lt;&lt; path }
+ require "bundler"
+ begin
+   Bundler.setup(:default, :plugins)
+@@ -94,6 +96,7 @@ rescue Bundler::VersionConflict =&gt; e
+   $stderr.puts e.message
+   exit 1
+ end
++load_path.each { |path| $LOAD_PATH.push(path) unless $LOAD_PATH.include?(path) }
+
+ # Stdout/stderr should not buffer output
+ $stdout.sync = true
+@@ -164,11 +167,6 @@ begin
+   logger.debug("Creating Vagrant environment")
+   env = Vagrant::Environment.new(opts)
+
+-  if !Vagrant.in_installer? &amp;&amp; !Vagrant.very_quiet?
+-    # If we're not in the installer, warn.
+-    env.ui.warn(I18n.t("vagrant.general.not_in_installer") + "\n", prefix: false)
+-  end
+-
+   begin
+     # Execute the CLI interface, and exit with the proper error code
+     exit_status = env.cli(argv)
+diff --git a/lib/vagrant/bundler.rb b/lib/vagrant/bundler.rb
+index 05867da..54f9fb8 100644
+--- a/lib/vagrant/bundler.rb
++++ b/lib/vagrant/bundler.rb
+@@ -18,8 +18,7 @@ module Vagrant
+     end
+
+     def initialize
+-      @enabled = true if ENV["VAGRANT_INSTALLER_ENV"] ||
+-        ENV["VAGRANT_FORCE_BUNDLER"]
++      @enabled  = true
+       @enabled  = !::Bundler::SharedHelpers.in_bundle? if !@enabled
+       @monitor  = Monitor.new
+
+---
+</code></pre></div></div>
+
+<p>Test and install:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ rake test:unit
+$ rake install
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ vagrant status
+You appear to be running Vagrant outside of the official installers.
+Note that the installers are what ensure that Vagrant has all required
+dependencies, and Vagrant assumes that these dependencies exist. By
+running outside of the installer environment, Vagrant may not function
+properly. To remove this warning, install Vagrant using one of the
+official packages from vagrantup.com.
+</code></pre></div></div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ vagrant plugin install vagrant-aws
+Installing the 'vagrant-aws' plugin. This can take a few minutes...
+Vagrant's built-in bundler management mechanism is disabled because
+Vagrant is running in an external bundler environment. In these
+cases, plugin management does not work with Vagrant. To install
+plugins, use your own Gemfile. To load plugins, either put the
+plugins in the `plugins` group in your Gemfile or manually require
+them in a Vagrantfile.
+</code></pre></div></div>
+
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:1" role="doc-endnote">
+      <p>Without this patch Vagrant will give the following warning: <a href="#fnref:1" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:2" role="doc-endnote">
+      <p>Without this patch Vagrant will give the following error: <a href="#fnref:2" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+    <li id="fn:3" role="doc-endnote">
+      <p>Without this patch Vagrant will give an <a href="https://github.com/mitchellh/vagrant/issues/5172">error when running in a directory containing a Gemfile</a>. <a href="#fnref:3" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+  </div><a class="u-url" href="/2014/12/08/vagrant-non-supported-install.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">p8952</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">Peter Wilmott</li><li><a class="u-email" href="mailto:p@p8952.info">p@p8952.info</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/p8952"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">p8952</span></a></li><li><a href="https://www.linkedin.com/in/peterwilmott"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg> <span class="username">peterwilmott</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>cat /dev/random</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

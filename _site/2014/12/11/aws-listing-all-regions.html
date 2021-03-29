@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1"><!-- Begin Jekyll SEO tag v2.7.1 -->
+<title>Listing EC2 instances in all regions | p8952</title>
+<meta name="generator" content="Jekyll v4.2.0" />
+<meta property="og:title" content="Listing EC2 instances in all regions" />
+<meta name="author" content="Peter Wilmott" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="When working with EC2 instances across multiple regions I’ve found it’s near impossible to get a good overview of what is running where. This can be especially annoying when you are automatically launching a number of short lived instances." />
+<meta property="og:description" content="When working with EC2 instances across multiple regions I’ve found it’s near impossible to get a good overview of what is running where. This can be especially annoying when you are automatically launching a number of short lived instances." />
+<meta property="og:site_name" content="p8952" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2014-12-11T00:00:00-06:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Listing EC2 instances in all regions" />
+<script type="application/ld+json">
+{"author":{"@type":"Person","name":"Peter Wilmott"},"@type":"BlogPosting","description":"When working with EC2 instances across multiple regions I’ve found it’s near impossible to get a good overview of what is running where. This can be especially annoying when you are automatically launching a number of short lived instances.","headline":"Listing EC2 instances in all regions","datePublished":"2014-12-11T00:00:00-06:00","dateModified":"2014-12-11T00:00:00-06:00","mainEntityOfPage":{"@type":"WebPage","@id":"/2014/12/11/aws-listing-all-regions.html"},"url":"/2014/12/11/aws-listing-all-regions.html","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/main.css"><link type="application/atom+xml" rel="alternate" href="/feed.xml" title="p8952" /></head>
+<body><header class="site-header" role="banner">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">p8952</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/">Home</a><a class="page-link" href="/code.html">Code</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Listing EC2 instances in all regions</h1>
+    <p class="post-meta">
+      <time class="dt-published" datetime="2014-12-11T00:00:00-06:00" itemprop="datePublished">Dec 11, 2014
+      </time></p>
+  </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <p>When working with EC2 instances across multiple regions I’ve found it’s near
+impossible to get a good overview of what is running where. This can be
+especially annoying when you are automatically launching a number of short
+lived instances.</p>
+
+<p>To prevent me having to go through 9 different web pages to see what I
+currently have running I found it easier to just use the API and list active
+instances from the CLI.</p>
+
+<p>Install dependencies:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ gem install aws-sdk pmap
+</code></pre></div></div>
+
+<p>/usr/local/bin/aws-list:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>#!/usr/bin/ruby
+
+require 'aws-sdk'
+require 'pmap'
+
+def ec2(region = 'us-east-1')
+	ec2 = AWS::EC2.new(
+		access_key_id: ENV['AWS_ACCESS_KEY'],
+		secret_access_key: ENV['AWS_SECRET_KEY'],
+		region: region
+	)
+	ec2
+end
+
+def list_instances
+	instances = []
+	ec2.regions.peach do |region|
+		ec2.regions[region.name].instances.peach do |instance|
+			next if instance.status == :terminated
+			instances &lt;&lt; instance
+		end
+	end
+	instances
+end
+
+list_instances.peach do |instance|
+	puts "#{instance.id}\t\t#{instance.availability_zone}\t\t#{instance.status}\t\t#{instance.ip_address}\n"
+end
+</code></pre></div></div>
+
+<p>Listing instances:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ export AWS_ACCESS_KEY="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+$ export AWS_SECRET_KEY="ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
+$ aws-list
+i-16b78754  eu-west-1a          running     54.77.218.113
+i-0025e1e6  eu-west-1a          running     54.76.129.127
+i-3926e2df  eu-west-1a          running     54.154.52.146
+i-4924e0af  eu-west-1a          running     54.154.52.77
+i-c424e022  eu-west-1a          running     54.72.131.127
+i-0c25e1ea  eu-west-1a          running     54.154.51.140
+i-9c25e17a  eu-west-1a          running     54.154.49.204
+i-4b24e0ad  eu-west-1a          running     54.77.225.135
+i-33e929f2  eu-central-1b       running     54.93.164.233
+i-c324e025  eu-west-1a          running     54.76.98.165
+i-3f26e2d9  eu-west-1a          running     54.154.47.126
+i-8027e366  eu-west-1a          running     54.154.20.140
+i-0d25e1eb  eu-west-1a          running     54.77.100.132
+i-d718edd9  us-west-2c          running     54.149.35.63
+i-0c2028e6  us-east-1a          running     54.164.193.104
+i-5b95e54e  sa-east-1a          running     54.94.165.7
+i-2dad38de  ap-northeast-1a     running     54.65.157.129
+i-625a80af  ap-southeast-1a     running     54.169.195.201
+i-a06e006f  ap-southeast-2a     running     54.66.184.34
+i-2dbce5e5  us-west-1a          running     54.67.67.18
+</code></pre></div></div>
+
+  </div><a class="u-url" href="/2014/12/11/aws-listing-all-regions.html" hidden></a>
+</article>
+
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading">p8952</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list">
+          <li class="p-name">Peter Wilmott</li><li><a class="u-email" href="mailto:p@p8952.info">p@p8952.info</a></li></ul>
+      </div>
+
+      <div class="footer-col footer-col-2"><ul class="social-media-list"><li><a href="https://github.com/p8952"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg> <span class="username">p8952</span></a></li><li><a href="https://www.linkedin.com/in/peterwilmott"><svg class="svg-icon"><use xlink:href="/assets/minima-social-icons.svg#linkedin"></use></svg> <span class="username">peterwilmott</span></a></li></ul>
+</div>
+
+      <div class="footer-col footer-col-3">
+        <p>cat /dev/random</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>

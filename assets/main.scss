@@ -1,0 +1,39 @@
+---
+---
+
+@import "minima";
+
+.site-header {
+  border-top: 5px solid #7f00ff;
+}
+
+.page-heading {
+  display: none;
+}
+
+.post-list-heading {
+  display: none;
+}
+
+.rss-subscribe {
+  display: none;
+}
+
+.footer-heading {
+  display: none;
+}
+
+.footer-col-1 {
+  box-sizing: border-box;
+  width: 50%;
+}
+
+.footer-col-2 {
+  box-sizing: border-box;
+  width: 50%;
+  text-align: right;
+}
+
+.footer-col-3 {
+  display: none;
+}

@@ -1,0 +1,13 @@
+title: "p8952"
+description: "cat /dev/random"
+header_pages:
+  - index.md
+  - code.md
+author: "Peter Wilmott"
+email: "p@p8952.info"
+github_username: "p8952"
+linkedin_username: "peterwilmott"
+
+theme: minima
+plugins:
+  - "jekyll-feed"
